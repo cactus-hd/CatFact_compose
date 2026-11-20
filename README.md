@@ -103,5 +103,5 @@ Feel free to check out the [issues page](https://github.com/cactus-hd/CatFact_co
 If you enjoyed this project, please give it a **⭐ Star** on GitHub!
 
 <div align="center">
-  Crafted with ❤️ and 🐱 by <a href="https://github.com/cactus-hd">cactus-hd</a>
+ 
 </div>
