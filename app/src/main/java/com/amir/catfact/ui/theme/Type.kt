@@ -11,7 +11,7 @@ import com.amir.catfact.R
 // Set of Material typography styles to start with
 val Typography = Typography(
     bodyLarge = TextStyle(
-        fontFamily = FontFamily(Font(R.font.balooo)),
+        fontFamily = FontFamily(Font(R.font.pixel)),
         fontWeight = FontWeight.Normal,
         fontSize = 16.sp,
         lineHeight = 24.sp,
