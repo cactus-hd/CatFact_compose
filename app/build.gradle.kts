@@ -35,9 +35,19 @@ android {
     }
 }
 
+configurations.all {
+    resolutionStrategy {
+        force("androidx.appcompat:appcompat:1.7.0")
+        force("androidx.appcompat:appcompat-resources:1.7.0")
+        force("androidx.vectordrawable:vectordrawable-animated:1.2.0")
+        force("androidx.exifinterface:exifinterface:1.4.0")
+    }
+}
+
 dependencies {
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.appcompat)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
@@ -54,4 +64,6 @@ dependencies {
 
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+    implementation("io.coil-kt:coil-compose:2.7.0")
+    implementation("io.coil-kt:coil-gif:2.7.0")
 }
