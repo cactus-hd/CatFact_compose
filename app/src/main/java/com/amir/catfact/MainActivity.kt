@@ -2,25 +2,31 @@ package com.amir.catfact
 
 import android.content.Intent
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -34,8 +40,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -58,6 +66,9 @@ import java.io.IOException
 
 class MainActivity : ComponentActivity() {
     private var fact = mutableStateOf(CatFacts())
+    private var isLoading = mutableStateOf(false)
+    private var isError = mutableStateOf(false)
+    private var errorMessage = mutableStateOf("")
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -65,11 +76,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             CatFactTheme {
                 Surface(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .clickable {
-                            sendRequest()
-                        },
+                    modifier = Modifier.fillMaxSize(),
                     color = Color(0xFF6650a4)
                 ) {
                     LaunchedEffect(Unit) {
@@ -83,29 +90,48 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun sendRequest() {
+        if (isLoading.value) return
         lifecycleScope.launch(Dispatchers.IO) {
+            withContext(Dispatchers.Main) {
+                isLoading.value = true
+                isError.value = false
+            }
             try {
                 val response = RetrofitInstance.api.getRandomFact()
                 if (response.isSuccessful && response.body() != null) {
                     withContext(Dispatchers.Main) {
                         fact.value = response.body()!!
+                        isError.value = false
+                    }
+                } else {
+                    withContext(Dispatchers.Main) {
+                        isError.value = true
+                        errorMessage.value = "Error ${response.code()}: ${response.message()}"
                     }
                 }
             } catch (e: HttpException) {
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(applicationContext, "Http error ${e.message}", Toast.LENGTH_SHORT).show()
+                    isError.value = true
+                    errorMessage.value = "HTTP error: ${e.message}"
                 }
             } catch (e: IOException) {
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(applicationContext, "IO error ${e.message}", Toast.LENGTH_SHORT).show()
+                    isError.value = true
+                    errorMessage.value = "Connection error. Check your internet."
+                }
+            } finally {
+                withContext(Dispatchers.Main) {
+                    isLoading.value = false
                 }
             }
         }
     }
 
+    @OptIn(ExperimentalFoundationApi::class)
     @Composable
     fun myui(modifier: Modifier = Modifier, fact: MutableState<CatFacts>) {
         val context = LocalContext.current
+        val clipboardManager = LocalClipboardManager.current
         val imageLoader = remember {
             ImageLoader.Builder(context)
                 .components {
@@ -134,58 +160,170 @@ class MainActivity : ComponentActivity() {
             Spacer(modifier.height(20.dp))
 
             Card(
-                modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
                     containerColor = Color(0xFF4B397E)
                 )
             ) {
-                Column(modifier.padding(16.dp)) {
-                    Text(
-                        "Did you know ?",
-                        fontSize = 20.sp,
-                        color = Color.White,
-                        fontFamily = FontFamily(Font(R.font.pixel))
+                if (isError.value) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            "Oops! 😿",
+                            fontSize = 20.sp,
+                            color = Color(0xFFEEA2B8),
+                            fontFamily = FontFamily(Font(R.font.pixel))
+                        )
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        Text(
+                            errorMessage.value,
+                            fontSize = 11.sp,
+                            color = Color.White,
+                            lineHeight = 22.sp,
+                            fontFamily = FontFamily(Font(R.font.pixel))
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Button(
+                            onClick = { sendRequest() },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEEA2B8)),
+                            shape = RoundedCornerShape(50.dp)
+                        ) {
+                            Text(
+                                "Try Again 🔄",
+                                fontSize = 12.sp,
+                                color = Color.White,
+                                fontFamily = FontFamily(Font(R.font.pixel))
+                            )
+                        }
+                    }
+                } else {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .combinedClickable(
+                                onLongClick = {
+                                    if (fact.value.fact.isNotEmpty()) {
+                                        clipboardManager.setText(AnnotatedString(fact.value.fact))
+                                        Toast.makeText(context, "Copied to clipboard! 📋", Toast.LENGTH_SHORT).show()
+                                    }
+                                },
+                                onClick = { }
+                            )
+                            .padding(16.dp)
+                    ) {
+                        Text(
+                            "Did you know ?",
+                            fontSize = 20.sp,
+                            color = Color.White,
+                            fontFamily = FontFamily(Font(R.font.pixel))
+                        )
+
+                        Spacer(modifier = Modifier.height(20.dp))
+
+                        AnimatedContent(
+                            targetState = fact.value.fact,
+                            transitionSpec = {
+                                (fadeIn() + slideInVertically { it / 2 }) togetherWith
+                                        (fadeOut() + slideOutVertically { -it / 2 })
+                            },
+                            label = "CatFactAnimation"
+                        ) { targetFact ->
+                            Text(
+                                text = targetFact,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                lineHeight = 35.sp,
+                                color = Color.White,
+                                fontFamily = FontFamily(Font(R.font.pixel))
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Text(
+                            "📋 Long press to copy",
+                            fontSize = 8.sp,
+                            color = Color.White.copy(alpha = 0.5f),
+                            fontFamily = FontFamily(Font(R.font.pixel))
+                        )
+                    }
+                }
+            }
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 20.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Button(
+                    onClick = { sendRequest() },
+                    enabled = !isLoading.value,
+                    shape = RoundedCornerShape(100.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(50.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFEEA2B8)
                     )
+                ) {
+                    if (isLoading.value) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(22.dp),
+                            color = Color.White,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text(
+                            "refresh",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            fontFamily = FontFamily(Font(R.font.pixel))
+                        )
+                    }
+                }
 
-                    Spacer(modifier.height(20.dp))
-
+                Button(
+                    onClick = {
+                        if (fact.value.fact.isNotEmpty()) {
+                            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                type = "text/plain"
+                                putExtra(Intent.EXTRA_TEXT, "🐱 Cat Fact:\n\n${fact.value.fact}")
+                            }
+                            context.startActivity(Intent.createChooser(shareIntent, "Share Cat Fact"))
+                        }
+                    },
+                    enabled = fact.value.fact.isNotEmpty() && !isLoading.value,
+                    shape = RoundedCornerShape(100.dp),
+                    modifier = Modifier.height(50.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF4B397E)
+                    )
+                ) {
                     Text(
-                        fact.value.fact,
-                        fontSize = 12.sp,
+                        "share ↗",
+                        fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
-                        lineHeight = 35.sp,
                         color = Color.White,
                         fontFamily = FontFamily(Font(R.font.pixel))
                     )
                 }
             }
 
-            Button(
-                { sendRequest() },
-                shape = RoundedCornerShape(100.dp),
-                modifier = modifier.fillMaxWidth().padding(30.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFFEEA2B8)
-                )
-            ) {
-                Text(
-                    "refresh",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    lineHeight = 35.sp,
-                    color = Color.White,
-                    fontFamily = FontFamily(Font(R.font.pixel))
-                )
-            }
-
             Column(
-                    modifier.fillMaxSize(),
-                    horizontalAlignment = Alignment.End,
-                    verticalArrangement = Arrangement.Bottom
+                modifier = Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.Bottom
             ) {
                 CatWithSpeechBubble()
             }
-
         }
     }
 
@@ -257,5 +395,4 @@ class MainActivity : ComponentActivity() {
             )
         }
     }
-
 }
