@@ -26,7 +26,8 @@
 
 ## ✨ Features
 
-- 📱 **Home Screen AppWidget (4x2)**: Beautiful 4x2 Home Screen widget with an interactive **🔄 Refresh** button to fetch cat facts directly on your Android home screen!
+- 🔥 **Daily Streak Counter (`streak.gif`)**: Tracks your daily cat fact reading streak with animated `streak.gif`! Reading a fact each day increments your streak. If 2 consecutive days are missed, the streak resets to 0.
+- 📱 **Home Screen AppWidget (4x2)**: Beautiful 4x2 Home Screen widget with an interactive **REFRESH** button. Features a **24-hour Streak Warning (`cat.png`)** if you haven't read a fact today to keep your streak alive!
 - 👾 **Retro Pixel Aesthetic**: Customized with custom pixel typography (`pixel.ttf`) and retro color schemes.
 - 🎬 **Animated GIF Support**: Powered by **Coil 2.x** with native `ImageDecoderDecoder` to display smooth retro cat animations.
 - ⚡ **Animated Content Transitions**: Uses Compose `AnimatedContent` (`fadeIn` + `slideInVertically`) for smooth text transitions when fetching a new fact.

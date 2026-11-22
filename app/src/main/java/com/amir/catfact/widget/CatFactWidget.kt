@@ -10,6 +10,7 @@ import android.widget.RemoteViews
 import com.amir.catfact.MainActivity
 import com.amir.catfact.R
 import com.amir.catfact.utils.RetrofitInstance
+import com.amir.catfact.utils.StreakManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -33,26 +34,27 @@ class CatFactWidget : AppWidgetProvider() {
 
     override fun onReceive(context: Context, intent: Intent) {
         super.onReceive(context, intent)
-        if (intent.action == ACTION_REFRESH_WIDGET) {
+        if (intent.action == ACTION_REFRESH_WIDGET || intent.action == AppWidgetManager.ACTION_APPWIDGET_UPDATE) {
             val appWidgetManager = AppWidgetManager.getInstance(context)
             val componentName = ComponentName(context, CatFactWidget::class.java)
             val appWidgetIds = appWidgetManager.getAppWidgetIds(componentName)
 
-            // 1. Show loading text immediately without emojis
+            // 1. Show loading text
             val loadingViews = RemoteViews(context.packageName, R.layout.widget_cat_fact).apply {
                 setTextViewText(R.id.widget_fact_text, "Loading cat fact...")
             }
             appWidgetManager.updateAppWidget(componentName, loadingViews)
 
-            // 2. Fetch new fact in background
+            // 2. Fetch new fact in background and record read/streak
             CoroutineScope(Dispatchers.IO).launch {
                 try {
                     val response = RetrofitInstance.api.getRandomFact()
                     if (response.isSuccessful && response.body() != null) {
                         val factText = response.body()!!.fact
+                        StreakManager.recordFactRead(context)
                         withContext(Dispatchers.Main) {
                             for (id in appWidgetIds) {
-                                updateWidgetWithFact(context, appWidgetManager, id, factText)
+                                updateWidgetWithFact(context, appWidgetManager, id, factText, R.drawable.catbox)
                             }
                         }
                     } else {
@@ -74,6 +76,19 @@ class CatFactWidget : AppWidgetProvider() {
         appWidgetManager: AppWidgetManager,
         appWidgetId: Int
     ) {
+        val streakState = StreakManager.getStreakState(context)
+        if (streakState.isWarningState) {
+            // 24-hour streak warning on widget with cat.png icon!
+            updateWidgetWithFact(
+                context,
+                appWidgetManager,
+                appWidgetId,
+                "You haven't read a cat fact today! Open the app to keep your streak alive!",
+                R.drawable.cat
+            )
+            return
+        }
+
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val response = RetrofitInstance.api.getRandomFact()
@@ -83,7 +98,7 @@ class CatFactWidget : AppWidgetProvider() {
                     "Cats make life better! Click REFRESH for a new fact."
                 }
                 withContext(Dispatchers.Main) {
-                    updateWidgetWithFact(context, appWidgetManager, appWidgetId, factText)
+                    updateWidgetWithFact(context, appWidgetManager, appWidgetId, factText, R.drawable.catbox)
                 }
             } catch (_: Exception) {
                 withContext(Dispatchers.Main) {
@@ -91,7 +106,8 @@ class CatFactWidget : AppWidgetProvider() {
                         context,
                         appWidgetManager,
                         appWidgetId,
-                        "Cats sleep for 70% of their lives! Click REFRESH to try again."
+                        "Cats sleep for 70% of their lives! Click REFRESH to try again.",
+                        R.drawable.catbox
                     )
                 }
             }
@@ -102,10 +118,12 @@ class CatFactWidget : AppWidgetProvider() {
         context: Context,
         appWidgetManager: AppWidgetManager,
         appWidgetId: Int,
-        factText: String
+        factText: String,
+        iconRes: Int = R.drawable.catbox
     ) {
         val views = RemoteViews(context.packageName, R.layout.widget_cat_fact).apply {
             setTextViewText(R.id.widget_fact_text, factText)
+            setImageViewResource(R.id.widget_cat_icon, iconRes)
 
             // Click container -> open MainActivity
             val appIntent = Intent(context, MainActivity::class.java)
@@ -140,6 +158,7 @@ class CatFactWidget : AppWidgetProvider() {
     ) {
         val views = RemoteViews(context.packageName, R.layout.widget_cat_fact).apply {
             setTextViewText(R.id.widget_fact_text, "Failed to load fact. Click REFRESH to try again.")
+            setImageViewResource(R.id.widget_cat_icon, R.drawable.catbox)
         }
         appWidgetManager.updateAppWidget(componentName, views)
     }

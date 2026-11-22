@@ -1,5 +1,5 @@
-package com.amir.catfact
-
+import android.appwidget.AppWidgetManager
+import android.content.ComponentName
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -54,9 +54,12 @@ import coil.ImageLoader
 import coil.compose.AsyncImage
 import coil.decode.ImageDecoderDecoder
 import coil.request.ImageRequest
+import com.amir.catfact.R
 import com.amir.catfact.model.CatFacts
 import com.amir.catfact.ui.theme.CatFactTheme
 import com.amir.catfact.utils.RetrofitInstance
+import com.amir.catfact.utils.StreakManager
+import com.amir.catfact.widget.CatFactWidget
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -69,10 +72,13 @@ class MainActivity : ComponentActivity() {
     private var isLoading = mutableStateOf(false)
     private var isError = mutableStateOf(false)
     private var errorMessage = mutableStateOf("")
+    private var streakState = mutableStateOf(StreakManager.StreakState(0, isWarningState = false, isExtinguished = false))
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        streakState.value = StreakManager.getStreakState(applicationContext)
+
         setContent {
             CatFactTheme {
                 Surface(
@@ -99,9 +105,12 @@ class MainActivity : ComponentActivity() {
             try {
                 val response = RetrofitInstance.api.getRandomFact()
                 if (response.isSuccessful && response.body() != null) {
+                    val updatedStreak = StreakManager.recordFactRead(applicationContext)
                     withContext(Dispatchers.Main) {
                         fact.value = response.body()!!
                         isError.value = false
+                        streakState.value = updatedStreak
+                        notifyWidgetUpdate()
                     }
                 } else {
                     withContext(Dispatchers.Main) {
@@ -127,6 +136,17 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun notifyWidgetUpdate() {
+        val widgetIntent = Intent(applicationContext, CatFactWidget::class.java).apply {
+            action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
+        }
+        val ids = AppWidgetManager.getInstance(applicationContext).getAppWidgetIds(
+            ComponentName(applicationContext, CatFactWidget::class.java)
+        )
+        widgetIntent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids)
+        sendBroadcast(widgetIntent)
+    }
+
     @OptIn(ExperimentalFoundationApi::class)
     @Composable
     fun myui(modifier: Modifier = Modifier, fact: MutableState<CatFacts>) {
@@ -144,6 +164,42 @@ class MainActivity : ComponentActivity() {
             modifier.fillMaxSize().padding(16.dp),
             verticalArrangement = Arrangement.Center
         ) {
+
+            // Streak Badge
+            Surface(
+                shape = RoundedCornerShape(50.dp),
+                color = Color(0xFF4B397E),
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .padding(bottom = 12.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    AsyncImage(
+                        model = ImageRequest.Builder(context)
+                            .data(R.drawable.streak)
+                            .build(),
+                        imageLoader = imageLoader,
+                        contentDescription = "Streak GIF",
+                        modifier = Modifier.size(26.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    val streakText = if (streakState.value.isExtinguished) {
+                        "STREAK OFF (0 DAYS)"
+                    } else {
+                        "STREAK: ${streakState.value.count} DAYS"
+                    }
+                    Text(
+                        text = streakText,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (streakState.value.isExtinguished) Color(0xFFEEA2B8) else Color.White,
+                        fontFamily = FontFamily(Font(R.font.pixel))
+                    )
+                }
+            }
 
             AsyncImage(
                 model = ImageRequest.Builder(context)
