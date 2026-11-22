@@ -5,7 +5,7 @@
     android:layout_height="match_parent"
     android:background="@drawable/widget_background"
     android:orientation="vertical"
-    android:padding="14dp">
+    android:padding="12dp">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -13,41 +13,62 @@
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
+        <ImageView
+            android:id="@+id/widget_cat_icon"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:contentDescription="Cat Icon"
+            android:src="@drawable/catbox" />
+
         <TextView
             android:id="@+id/widget_title"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
             android:layout_weight="1"
-            android:text="🐱 Cat Fact"
+            android:fontFamily="@font/pixel"
+            android:text="Did you know ?"
             android:textColor="#FFFFFF"
-            android:textSize="16sp"
+            android:textSize="11sp"
             android:textStyle="bold" />
 
-        <Button
+        <TextView
             android:id="@+id/widget_refresh_button"
             android:layout_width="wrap_content"
-            android:layout_height="36dp"
+            android:layout_height="wrap_content"
             android:background="@drawable/widget_button_bg"
-            android:paddingHorizontal="10dp"
-            android:text="🔄 Refresh"
-            android:textAllCaps="false"
+            android:fontFamily="@font/pixel"
+            android:gravity="center"
+            android:paddingHorizontal="14dp"
+            android:paddingVertical="8dp"
+            android:text="REFRESH"
             android:textColor="#FFFFFF"
-            android:textSize="12sp"
+            android:textSize="9sp"
             android:textStyle="bold" />
 
     </LinearLayout>
 
-    <TextView
-        android:id="@+id/widget_fact_text"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_marginTop="8dp"
         android:layout_weight="1"
-        android:ellipsize="end"
+        android:background="@drawable/widget_card_bg"
         android:gravity="center_vertical"
-        android:maxLines="4"
-        android:text="Loading cat fact..."
-        android:textColor="#FFFFFF"
-        android:textSize="13sp" />
+        android:padding="10dp">
+
+        <TextView
+            android:id="@+id/widget_fact_text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:fontFamily="@font/pixel"
+            android:lineSpacingExtra="4dp"
+            android:maxLines="4"
+            android:text="Loading cat fact..."
+            android:textColor="#FFFFFF"
+            android:textSize="10sp" />
+
+    </LinearLayout>
 
 </LinearLayout>

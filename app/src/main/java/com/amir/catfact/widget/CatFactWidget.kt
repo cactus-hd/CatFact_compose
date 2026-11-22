@@ -38,9 +38,9 @@ class CatFactWidget : AppWidgetProvider() {
             val componentName = ComponentName(context, CatFactWidget::class.java)
             val appWidgetIds = appWidgetManager.getAppWidgetIds(componentName)
 
-            // 1. Show loading text immediately
+            // 1. Show loading text immediately without emojis
             val loadingViews = RemoteViews(context.packageName, R.layout.widget_cat_fact).apply {
-                setTextViewText(R.id.widget_fact_text, "Fetching new cat fact... 🐾")
+                setTextViewText(R.id.widget_fact_text, "Loading cat fact...")
             }
             appWidgetManager.updateAppWidget(componentName, loadingViews)
 
@@ -60,7 +60,7 @@ class CatFactWidget : AppWidgetProvider() {
                             showErrorOnWidget(context, appWidgetManager, componentName)
                         }
                     }
-                } catch (e: Exception) {
+                } catch (_: Exception) {
                     withContext(Dispatchers.Main) {
                         showErrorOnWidget(context, appWidgetManager, componentName)
                     }
@@ -80,18 +80,18 @@ class CatFactWidget : AppWidgetProvider() {
                 val factText = if (response.isSuccessful && response.body() != null) {
                     response.body()!!.fact
                 } else {
-                    "Cats make life better! 🐱 Click refresh for a new fact."
+                    "Cats make life better! Click REFRESH for a new fact."
                 }
                 withContext(Dispatchers.Main) {
                     updateWidgetWithFact(context, appWidgetManager, appWidgetId, factText)
                 }
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 withContext(Dispatchers.Main) {
                     updateWidgetWithFact(
                         context,
                         appWidgetManager,
                         appWidgetId,
-                        "Cats sleep for 70% of their lives! 🐾 Click refresh to try again."
+                        "Cats sleep for 70% of their lives! Click REFRESH to try again."
                     )
                 }
             }
@@ -139,7 +139,7 @@ class CatFactWidget : AppWidgetProvider() {
         componentName: ComponentName
     ) {
         val views = RemoteViews(context.packageName, R.layout.widget_cat_fact).apply {
-            setTextViewText(R.id.widget_fact_text, "Failed to load fact. Click 🔄 Refresh to try again!")
+            setTextViewText(R.id.widget_fact_text, "Failed to load fact. Click REFRESH to try again.")
         }
         appWidgetManager.updateAppWidget(componentName, views)
     }
