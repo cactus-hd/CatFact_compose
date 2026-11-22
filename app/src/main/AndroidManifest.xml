@@ -27,6 +27,20 @@
         <meta-data
             android:name="preloaded_fonts"
             android:resource="@array/preloaded_fonts" />
+
+        <receiver
+            android:name=".widget.CatFactWidget"
+            android:exported="true"
+            android:label="Cat Fact Widget (4x2)">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.amir.catfact.ACTION_REFRESH_WIDGET" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/cat_fact_widget_info" />
+        </receiver>
     </application>
 
 </manifest>
